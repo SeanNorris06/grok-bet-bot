@@ -1,6 +1,6 @@
 """
-GROK VALUEBET BOT V5.1 - VERSION FINALE ROBUSTE
-Toujours des pronos + Tous les championnats européens + Tennis + Basket
+GROK VALUEBET BOT V5.2 - VERSION FINALE ABSOLUE
+Toujours des pronos garantis
 """
 
 import os
@@ -28,25 +28,20 @@ conn.commit()
 
 SPORTS = [
     "soccer_france_ligue_one", "soccer_france_ligue_two",
-    "soccer_germany_bundesliga", "soccer_germany_2_bundesliga",
     "soccer_spain_la_liga", "soccer_spain_segunda_division",
     "soccer_italy_serie_a", "soccer_italy_serie_b",
     "soccer_england_premier_league", "soccer_england_championship",
+    "soccer_germany_bundesliga", "soccer_germany_2_bundesliga",
     "soccer_netherlands_eredivisie", "soccer_portugal_primeira_liga",
     "tennis_atp", "tennis_wta",
     "basketball_nba", "basketball_euroleague"
 ]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔥 *Grok ValueBet V5.1 - Version Finale*\n/today pour les pronos maintenant.")
+    await update.message.reply_text("🔥 *Grok ValueBet V5.2 - Version Finale Absolue*\n/today pour les pronos maintenant.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📋 *Commandes :*\n"
-        "/today → Pronos immédiats\n"
-        "/help → Cette aide\n"
-        "/stats → Infos rapides"
-    )
+    await update.message.reply_text("📋 /today → Pronos immédiats\n/help → Aide\n/stats → Infos")
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⏳ Analyse en cours...")
@@ -57,7 +52,7 @@ def fetch_odds(days=8):
     max_date = datetime.datetime.now(pytz.utc) + datetime.timedelta(days=days)
     for sport in SPORTS:
         url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds"
-        params = {"apiKey": ODDS_API_KEY, "regions": "eu", "bookmakers": "winamax_fr", "markets": "h2h,totals", "oddsFormat": "decimal"}
+        params = {"apiKey": ODDS_API_KEY, "regions": "eu", "bookmakers": "winamax_fr", "markets": "h2h", "oddsFormat": "decimal"}
         try:
             r = requests.get(url, params=params, timeout=15)
             if r.status_code == 200:
@@ -67,7 +62,7 @@ def fetch_odds(days=8):
                         matches.append(m)
         except:
             pass
-    return matches[:80]
+    return matches[:100]
 
 def calculate_picks(match):
     picks = []
@@ -80,15 +75,24 @@ def calculate_picks(match):
     
     if not h2h: return picks
 
-    p_home = 1 / h2h.get("Home", 3.0)
+    # Pronos du Jour - TOUJOURS REMPLI (le favori de chaque match)
+    home_odds = h2h.get("Home", 3.0)
+    away_odds = h2h.get("Away", 3.0)
+    
+    if home_odds <= away_odds:
+        picks.append(("Pronos du Jour", "Victoire domicile", round(home_odds,2), 0, 55))
+    else:
+        picks.append(("Pronos du Jour", "Victoire extérieur", round(away_odds,2), 0, 55))
+
+    # Ultra Safe et Intéressants (optionnels)
+    p_home = 1 / home_odds
     p_draw = 1 / h2h.get("Draw", 3.5)
-    p_away = 1 / h2h.get("Away", 3.0)
+    p_away = 1 / away_odds
     total = p_home + p_draw + p_away
     p_home = p_home / total
     p_draw = p_draw / total
     p_away = p_away / total
 
-    # Ultra Safe
     if h2h.get("Home"):
         dc_1x = p_home + p_draw
         odds = round(1 / dc_1x * 0.93, 2)
@@ -102,25 +106,6 @@ def calculate_picks(match):
         edge = round((dc_x2 - 1/odds) * 100, 1)
         if edge >= 9 and dc_x2 >= 0.58:
             picks.append(("Ultra Safe", "X2", odds, edge, round(dc_x2*100,1)))
-
-    # Picks Intéressants
-    if h2h.get("Home"):
-        dc_1x = p_home + p_draw
-        odds = round(1 / dc_1x * 0.93, 2)
-        edge = round((dc_1x - 1/odds) * 100, 1)
-        if edge >= 4 and dc_1x >= 0.55:
-            picks.append(("Intéressant", "1X", odds, edge, round(dc_1x*100,1)))
-
-    # Pronos du Jour - TOUJOURS REMPLI
-    if h2h.get("Home"):
-        odds = h2h.get("Home", 2.0)
-        if 1.4 <= odds <= 4.0:
-            picks.append(("Pronos du Jour", "Victoire domicile", round(odds,2), 0, 50))
-
-    if h2h.get("Away"):
-        odds = h2h.get("Away", 2.0)
-        if 1.4 <= odds <= 4.0:
-            picks.append(("Pronos du Jour", "Victoire extérieur", round(odds,2), 0, 50))
 
     return picks
 
@@ -143,25 +128,21 @@ def run_analysis():
     c.execute("SELECT * FROM picks WHERE date LIKE ? AND result='pending' ORDER BY edge DESC", (today_date + "%",))
     data = c.fetchall()
     
-    msg = f"🔥 **GROK VALUEBET V5.1 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
+    msg = f"🔥 **GROK VALUEBET V5.2 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
     msg += f"💰 Bankroll : {BANKROLL:.0f}€\n\n"
     
     ultra_safe = [r for r in data if r[4] == "Ultra Safe"][:4]
-    interesting = [r for r in data if r[4] == "Intéressant"][:6]
     basic = [r for r in data if r[4] == "Pronos du Jour"][:15]
     
     if ultra_safe:
         msg += "🛡️ **ULTRA SAFE**\n" + "\n".join([f"✅ {r[3]} → {r[5]} @ {r[6]}" for r in ultra_safe]) + "\n\n"
-    
-    if interesting:
-        msg += "💎 **PICKS INTÉRESSANTS**\n" + "\n".join([f"✅ {r[3]} → {r[5]} @ {r[6]}" for r in interesting]) + "\n\n"
     
     msg += "📌 **PRONOS DU JOUR** (toujours rempli)\n"
     for r in basic:
         msg += f"✅ {r[3]} → {r[5]} @ {r[6]}\n"
     
     send_message(msg)
-    print("✅ Message V5.1 envoyé !")
+    print("✅ Message V5.2 envoyé !")
 
 def main():
     scheduler = BackgroundScheduler(timezone="Europe/Paris")
@@ -174,7 +155,7 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("today", today))
     
-    print("✅ GROK VALUEBET V5.1 - VERSION FINALE lancée !")
+    print("✅ GROK VALUEBET V5.2 - VERSION FINALE lancée !")
     app.run_polling()
 
 if __name__ == "__main__":
