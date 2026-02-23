@@ -1,7 +1,6 @@
 """
-GROK VALUEBET BOT V5.0 - VERSION FINALE ABSOLUE
-Toujours des pronos + Ultra Safe + Intéressants + Pronos du Jour garanti
-Commandes en français + Messages propres
+GROK VALUEBET BOT V5.1 - VERSION FINALE ROBUSTE
+Toujours des pronos + Tous les championnats européens + Tennis + Basket
 """
 
 import os
@@ -27,44 +26,33 @@ c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS picks (date TEXT, time TEXT, sport TEXT, match TEXT, market TEXT, selection TEXT, odds REAL, edge REAL, prob REAL, result TEXT DEFAULT 'pending')''')
 conn.commit()
 
-SPORTS = ["soccer_france_ligue_one", "soccer_france_ligue_two", "soccer_spain_la_liga", "soccer_spain_segunda_division",
-          "soccer_italy_serie_a", "soccer_italy_serie_b", "soccer_england_premier_league", "soccer_england_championship"]
+SPORTS = [
+    "soccer_france_ligue_one", "soccer_france_ligue_two",
+    "soccer_germany_bundesliga", "soccer_germany_2_bundesliga",
+    "soccer_spain_la_liga", "soccer_spain_segunda_division",
+    "soccer_italy_serie_a", "soccer_italy_serie_b",
+    "soccer_england_premier_league", "soccer_england_championship",
+    "soccer_netherlands_eredivisie", "soccer_portugal_primeira_liga",
+    "tennis_atp", "tennis_wta",
+    "basketball_nba", "basketball_euroleague"
+]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🔥 *Bienvenue dans Grok ValueBet V5.0 - Version Finale !*\n\n"
-        "Je t'envoie chaque jour les meilleurs pronostics foot.\n"
-        "Commandes :\n"
-        "/today → Pronos immédiats\n"
-        "/help → Aide complète\n"
-        "/stats → Statistiques rapides\n\n"
-        "Bonnes chances et joue responsable 💰"
-    )
+    await update.message.reply_text("🔥 *Grok ValueBet V5.1 - Version Finale*\n/today pour les pronos maintenant.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📋 *Commandes disponibles :*\n\n"
-        "/start → Message de bienvenue\n"
-        "/today → Envoi immédiat des pronostics\n"
+        "📋 *Commandes :*\n"
+        "/today → Pronos immédiats\n"
         "/help → Cette aide\n"
-        "/stats → Voir les infos rapides\n\n"
-        "Le bot envoie automatiquement à 10h30 et 14h30."
+        "/stats → Infos rapides"
     )
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⏳ Analyse en cours... Je t'envoie les pronos tout de suite !")
+    await update.message.reply_text("⏳ Analyse en cours...")
     run_analysis()
 
-async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        f"📊 *Statistiques Grok ValueBet V5.0*\n\n"
-        f"Bankroll : {BANKROLL}€\n"
-        f"Mode : Ultra Safe + Intéressants + Pronos du Jour\n"
-        f"Envoi auto : 10h30 & 14h30\n\n"
-        "Tout est automatique."
-    )
-
-def fetch_odds(days=7):
+def fetch_odds(days=8):
     matches = []
     max_date = datetime.datetime.now(pytz.utc) + datetime.timedelta(days=days)
     for sport in SPORTS:
@@ -84,17 +72,14 @@ def fetch_odds(days=7):
 def calculate_picks(match):
     picks = []
     h2h = None
-    totals = None
     for bm in match.get("bookmakers", []):
         if bm["key"] != "winamax_fr": continue
         for market in bm["markets"]:
             if market["key"] == "h2h":
                 h2h = {o["name"]: o["price"] for o in market["outcomes"]}
-            elif market["key"] == "totals":
-                totals = {o["name"]: o["price"] for o in market["outcomes"]}
     
     if not h2h: return picks
-    
+
     p_home = 1 / h2h.get("Home", 3.0)
     p_draw = 1 / h2h.get("Draw", 3.5)
     p_away = 1 / h2h.get("Away", 3.0)
@@ -102,7 +87,7 @@ def calculate_picks(match):
     p_home = p_home / total
     p_draw = p_draw / total
     p_away = p_away / total
-    
+
     # Ultra Safe
     if h2h.get("Home"):
         dc_1x = p_home + p_draw
@@ -110,14 +95,14 @@ def calculate_picks(match):
         edge = round((dc_1x - 1/odds) * 100, 1)
         if edge >= 9 and dc_1x >= 0.62:
             picks.append(("Ultra Safe", "1X", odds, edge, round(dc_1x*100,1)))
-    
+
     if h2h.get("Away"):
         dc_x2 = p_draw + p_away
         odds = round(1 / dc_x2 * 0.93, 2)
         edge = round((dc_x2 - 1/odds) * 100, 1)
         if edge >= 9 and dc_x2 >= 0.58:
             picks.append(("Ultra Safe", "X2", odds, edge, round(dc_x2*100,1)))
-    
+
     # Picks Intéressants
     if h2h.get("Home"):
         dc_1x = p_home + p_draw
@@ -125,27 +110,18 @@ def calculate_picks(match):
         edge = round((dc_1x - 1/odds) * 100, 1)
         if edge >= 4 and dc_1x >= 0.55:
             picks.append(("Intéressant", "1X", odds, edge, round(dc_1x*100,1)))
-    
+
     # Pronos du Jour - TOUJOURS REMPLI
     if h2h.get("Home"):
-        dc_1x = p_home + p_draw
-        odds = round(1 / dc_1x * 0.93, 2)
-        edge = round((dc_1x - 1/odds) * 100, 1)
-        if dc_1x >= 0.48 and 1.45 <= odds <= 4.0:
-            picks.append(("Pronos du Jour", "1X", odds, edge, round(dc_1x*100,1)))
-    
-    if h2h.get("Away"):
-        dc_x2 = p_draw + p_away
-        odds = round(1 / dc_x2 * 0.93, 2)
-        edge = round((dc_x2 - 1/odds) * 100, 1)
-        if dc_x2 >= 0.48 and 1.45 <= odds <= 4.0:
-            picks.append(("Pronos du Jour", "X2", odds, edge, round(dc_x2*100,1)))
-    
-    # Fallback ultime si rien n'est trouvé
-    if not picks and h2h.get("Home"):
         odds = h2h.get("Home", 2.0)
-        picks.append(("Pronos du Jour", "Victoire domicile", round(odds,2), 0, 50))
-    
+        if 1.4 <= odds <= 4.0:
+            picks.append(("Pronos du Jour", "Victoire domicile", round(odds,2), 0, 50))
+
+    if h2h.get("Away"):
+        odds = h2h.get("Away", 2.0)
+        if 1.4 <= odds <= 4.0:
+            picks.append(("Pronos du Jour", "Victoire extérieur", round(odds,2), 0, 50))
+
     return picks
 
 def send_message(text):
@@ -167,31 +143,25 @@ def run_analysis():
     c.execute("SELECT * FROM picks WHERE date LIKE ? AND result='pending' ORDER BY edge DESC", (today_date + "%",))
     data = c.fetchall()
     
-    msg = f"🔥 **GROK VALUEBET V5.0 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
+    msg = f"🔥 **GROK VALUEBET V5.1 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
     msg += f"💰 Bankroll : {BANKROLL:.0f}€\n\n"
     
     ultra_safe = [r for r in data if r[4] == "Ultra Safe"][:4]
     interesting = [r for r in data if r[4] == "Intéressant"][:6]
-    basic = [r for r in data if r[4] == "Pronos du Jour"][:12]
+    basic = [r for r in data if r[4] == "Pronos du Jour"][:15]
     
     if ultra_safe:
-        msg += "🛡️ **ULTRA SAFE** (très haute probabilité)\n"
-        for r in ultra_safe:
-            msg += f"✅ {r[3]} → {r[5]} @ {r[6]} (proba ~{r[8]}%)\n"
-        msg += "\n"
+        msg += "🛡️ **ULTRA SAFE**\n" + "\n".join([f"✅ {r[3]} → {r[5]} @ {r[6]}" for r in ultra_safe]) + "\n\n"
     
     if interesting:
-        msg += "💎 **PICKS INTÉRESSANTS**\n"
-        for r in interesting:
-            msg += f"✅ {r[3]} → {r[5]} @ {r[6]}\n"
-        msg += "\n"
+        msg += "💎 **PICKS INTÉRESSANTS**\n" + "\n".join([f"✅ {r[3]} → {r[5]} @ {r[6]}" for r in interesting]) + "\n\n"
     
-    msg += "📌 **PRONOS DU JOUR** (toujours quelque chose)\n"
+    msg += "📌 **PRONOS DU JOUR** (toujours rempli)\n"
     for r in basic:
         msg += f"✅ {r[3]} → {r[5]} @ {r[6]}\n"
     
     send_message(msg)
-    print("✅ Message V5.0 envoyé !")
+    print("✅ Message V5.1 envoyé !")
 
 def main():
     scheduler = BackgroundScheduler(timezone="Europe/Paris")
@@ -203,9 +173,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("today", today))
-    app.add_handler(CommandHandler("stats", stats))
     
-    print("✅ GROK VALUEBET V5.0 - VERSION FINALE lancée !")
+    print("✅ GROK VALUEBET V5.1 - VERSION FINALE lancée !")
     app.run_polling()
 
 if __name__ == "__main__":
