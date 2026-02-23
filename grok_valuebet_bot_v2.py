@@ -1,6 +1,6 @@
 """
-GROK VALUEBET BOT V5.2 - VERSION FINALE ABSOLUE
-Toujours des pronos garantis
+GROK VALUEBET BOT V5.3 - VERSION FINALE ABSOLUE
+Toujours des pronos + Tous les championnats + Tennis + Basket
 """
 
 import os
@@ -38,7 +38,7 @@ SPORTS = [
 ]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔥 *Grok ValueBet V5.2 - Version Finale Absolue*\n/today pour les pronos maintenant.")
+    await update.message.reply_text("🔥 *Grok ValueBet V5.3 - Version Finale Absolue*\n/today pour les pronos maintenant.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📋 /today → Pronos immédiats\n/help → Aide\n/stats → Infos")
@@ -75,37 +75,14 @@ def calculate_picks(match):
     
     if not h2h: return picks
 
-    # Pronos du Jour - TOUJOURS REMPLI (le favori de chaque match)
-    home_odds = h2h.get("Home", 3.0)
-    away_odds = h2h.get("Away", 3.0)
-    
-    if home_odds <= away_odds:
-        picks.append(("Pronos du Jour", "Victoire domicile", round(home_odds,2), 0, 55))
-    else:
-        picks.append(("Pronos du Jour", "Victoire extérieur", round(away_odds,2), 0, 55))
-
-    # Ultra Safe et Intéressants (optionnels)
-    p_home = 1 / home_odds
-    p_draw = 1 / h2h.get("Draw", 3.5)
-    p_away = 1 / away_odds
-    total = p_home + p_draw + p_away
-    p_home = p_home / total
-    p_draw = p_draw / total
-    p_away = p_away / total
-
+    # Pronos du Jour - TOUJOURS REMPLI
     if h2h.get("Home"):
-        dc_1x = p_home + p_draw
-        odds = round(1 / dc_1x * 0.93, 2)
-        edge = round((dc_1x - 1/odds) * 100, 1)
-        if edge >= 9 and dc_1x >= 0.62:
-            picks.append(("Ultra Safe", "1X", odds, edge, round(dc_1x*100,1)))
-
+        odds = h2h.get("Home", 2.0)
+        picks.append(("Pronos du Jour", "Victoire domicile", round(odds,2), 0, 52))
+    
     if h2h.get("Away"):
-        dc_x2 = p_draw + p_away
-        odds = round(1 / dc_x2 * 0.93, 2)
-        edge = round((dc_x2 - 1/odds) * 100, 1)
-        if edge >= 9 and dc_x2 >= 0.58:
-            picks.append(("Ultra Safe", "X2", odds, edge, round(dc_x2*100,1)))
+        odds = h2h.get("Away", 2.0)
+        picks.append(("Pronos du Jour", "Victoire extérieur", round(odds,2), 0, 48))
 
     return picks
 
@@ -119,30 +96,25 @@ def run_analysis():
     
     for m in matches:
         picks = calculate_picks(m)
+        sport_name = m.get("sport_key", "Football").replace("_", " ").title()
         for market, sel, odds, edge, prob in picks:
             c.execute("INSERT INTO picks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')",
-                      (today.split()[0], today.split()[1], m["sport"], m["home_team"] + " - " + m["away_team"], market, sel, odds, edge, prob))
+                      (today.split()[0], today.split()[1], sport_name, m["home_team"] + " - " + m["away_team"], market, sel, odds, edge, prob))
             conn.commit()
     
     today_date = datetime.datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
     c.execute("SELECT * FROM picks WHERE date LIKE ? AND result='pending' ORDER BY edge DESC", (today_date + "%",))
     data = c.fetchall()
     
-    msg = f"🔥 **GROK VALUEBET V5.2 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
+    msg = f"🔥 **GROK VALUEBET V5.3 - VERSION FINALE** - {datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%d/%m %H:%M')}\n"
     msg += f"💰 Bankroll : {BANKROLL:.0f}€\n\n"
+    msg += "📌 **PRONOS DU JOUR** (toujours remplis)\n"
     
-    ultra_safe = [r for r in data if r[4] == "Ultra Safe"][:4]
-    basic = [r for r in data if r[4] == "Pronos du Jour"][:15]
-    
-    if ultra_safe:
-        msg += "🛡️ **ULTRA SAFE**\n" + "\n".join([f"✅ {r[3]} → {r[5]} @ {r[6]}" for r in ultra_safe]) + "\n\n"
-    
-    msg += "📌 **PRONOS DU JOUR** (toujours rempli)\n"
-    for r in basic:
+    for r in data[:15]:
         msg += f"✅ {r[3]} → {r[5]} @ {r[6]}\n"
     
     send_message(msg)
-    print("✅ Message V5.2 envoyé !")
+    print("✅ Message V5.3 envoyé !")
 
 def main():
     scheduler = BackgroundScheduler(timezone="Europe/Paris")
@@ -155,7 +127,7 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("today", today))
     
-    print("✅ GROK VALUEBET V5.2 - VERSION FINALE lancée !")
+    print("✅ GROK VALUEBET V5.3 - VERSION FINALE lancée !")
     app.run_polling()
 
 if __name__ == "__main__":
