@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <!-- rayons du soleil -->
+  <path android:fillColor="#E8B84A" android:pathData="M54,14 L58,26 L50,26 Z M54,94 L50,82 L58,82 Z M14,54 L26,50 L26,58 Z M94,54 L82,58 L82,50 Z M25.7,25.7 L35,33 L33,35 Z M82.3,82.3 L73,75 L75,73 Z M25.7,82.3 L33,73 L35,75 Z M82.3,25.7 L75,33 L73,35 Z"/>
+  <!-- disque -->
+  <path android:fillColor="#E8B84A" android:pathData="M54,54m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0"/>
+  <path android:fillColor="#14161A" android:pathData="M54,54m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"/>
+  <!-- cube -->
+  <path android:fillColor="#F6D77E" android:pathData="M54,38 L68,46 L54,54 L40,46 Z"/>
+  <path android:fillColor="#C98F26" android:pathData="M40,46 L54,54 L54,70 L40,62 Z"/>
+  <path android:fillColor="#E8B84A" android:pathData="M68,46 L54,54 L54,70 L68,62 Z"/>
+</vector>

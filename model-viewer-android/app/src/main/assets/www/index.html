@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Râ</title>
+<style>
+:root{--bg:#14161a;--panel:rgba(28,31,38,.92);--fg:#e8eaed;--accent:#4f9dff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif;overflow:hidden;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#bar{position:fixed;left:0;right:0;bottom:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;gap:6px;overflow-x:auto;background:var(--panel);backdrop-filter:blur(8px)}
+#bar button{flex:0 0 auto;min-width:56px;padding:8px 10px;border:0;border-radius:10px;background:#2a2e38;color:var(--fg);font-size:12px;line-height:1.3}
+#bar button .i{display:block;font-size:20px}
+#bar button.on{background:var(--accent);color:#fff}
+#bar button.main{background:var(--accent);color:#fff}
+#info{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;pointer-events:none;font-size:12px;opacity:.85;text-shadow:0 1px 3px #000}
+#msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);font-size:16px;text-align:center;padding:24px}
+#msg.show{display:flex}
+#file{display:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="info"></div>
+<div id="msg"></div>
+<div id="bar">
+  <button class="main" id="bOpen"><span class="i">📂</span>Ouvrir</button>
+  <button id="bRot"><span class="i">🔄</span>Rotation</button>
+  <button id="bWire"><span class="i">🕸</span>Filaire</button>
+  <button id="bGrid" class="on"><span class="i">▦</span>Grille</button>
+  <button id="bBg"><span class="i">🎨</span>Fond</button>
+  <button id="bLight"><span class="i">💡</span>Lumière</button>
+  <button id="bAnim" style="display:none"><span class="i">▶</span>Anim</button>
+  <button id="bReset"><span class="i">🎯</span>Recentrer</button>
+</div>
+<input type="file" id="file" multiple>
+<script src="app.js"></script>
+</body>
+</html>
